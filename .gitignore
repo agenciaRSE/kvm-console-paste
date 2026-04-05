@@ -1,0 +1,9 @@
+# Build artifacts
+*.zip
+
+# AI image generator output (raw originals)
+store-assets/nanobanana-output/
+
+# OS
+.DS_Store
+Thumbs.db
