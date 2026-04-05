@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>KVM Console Paste</h1>
+      <div id="status" class="status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Detecting console...</span>
+      </div>
+    </header>
+
+    <div class="main">
+      <label for="textInput">Text to send:</label>
+      <textarea id="textInput" placeholder="Paste the text you want to send to the KVM console here..." rows="6"></textarea>
+
+      <div class="speed-control">
+        <label for="speedSlider">Typing speed:</label>
+        <div class="slider-row">
+          <span class="speed-label">Fast</span>
+          <input type="range" id="speedSlider" min="10" max="200" value="50" step="5">
+          <span class="speed-label">Slow</span>
+        </div>
+        <span class="speed-value" id="speedValue">50ms</span>
+      </div>
+
+      <div class="speed-control">
+        <label for="newlineSlider">Delay after Enter (for commands):</label>
+        <div class="slider-row">
+          <span class="speed-label">500ms</span>
+          <input type="range" id="newlineSlider" min="200" max="3000" value="500" step="100">
+          <span class="speed-label">3s</span>
+        </div>
+        <span class="speed-value" id="newlineValue">500ms</span>
+      </div>
+
+      <div class="actions">
+        <button id="sendBtn" class="btn btn-primary" disabled>Send to Console</button>
+        <button id="cancelBtn" class="btn btn-danger" style="display:none;">Cancel</button>
+        <button id="clearBtn" class="btn btn-secondary">Clear</button>
+      </div>
+
+      <div id="progressSection" class="progress-section" style="display:none;">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="progress-text" id="progressText">0%</span>
+      </div>
+    </div>
+
+    <div class="settings">
+      <h2>Options</h2>
+      <label class="checkbox-label">
+        <input type="checkbox" id="autoPaste" checked>
+        Auto-paste with Ctrl+V on console
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="showOverlay" checked>
+        Show progress overlay on page
+      </label>
+    </div>
+
+    <footer>
+      <span class="strategy" id="strategyInfo"></span>
+      <div class="footer-links">
+        <span class="author">by <a href="https://agenciarse.com" target="_blank" rel="noopener">AGENCIA RSE</a></span>
+        <a href="https://www.paypal.com/paypalme/dmeijide" target="_blank" rel="noopener" class="donate-link">Donate</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
