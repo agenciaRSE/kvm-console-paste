@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "KVM Console Paste",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Copy and paste text into noVNC KVM consoles (IONOS, Proxmox, Plesk). Simulates keystrokes at configurable speed.",
   "author": "AGENCIA RSE",
   "homepage_url": "https://agenciarse.com",
