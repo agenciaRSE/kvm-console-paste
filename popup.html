@@ -14,7 +14,15 @@
       </div>
     </header>
 
-    <div class="main">
+    <!-- Site permission section (shown when site not yet enabled) -->
+    <div id="siteSection" class="site-section" style="display:none;">
+      <div class="site-blocked">
+        <p class="site-blocked-msg">This site is not enabled.<br>Allow the extension to run here?</p>
+        <button id="enableBtn" class="btn btn-enable">Enable on this site</button>
+      </div>
+    </div>
+
+    <div class="main" id="mainSection">
       <label for="textInput">Text to send:</label>
       <textarea id="textInput" placeholder="Paste the text you want to send to the KVM console here..." rows="6"></textarea>
 
@@ -62,6 +70,12 @@
         <input type="checkbox" id="showOverlay" checked>
         Show progress overlay on page
       </label>
+      <div class="sites-header" id="sitesToggle">
+        <span>Enabled sites</span>
+        <span id="sitesBadge" class="sites-badge">0</span>
+        <span class="sites-chevron" id="sitesChevron">▸</span>
+      </div>
+      <div id="sitesList" class="sites-list" style="display:none;"></div>
     </div>
 
     <footer>

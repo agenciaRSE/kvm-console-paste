@@ -18,14 +18,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return false;
 });
 
-// Context menu for right-click paste
-chrome.runtime.onInstalled.addListener(() => {
+// On install/update: recreate context menu and re-register content scripts
+// for all saved domains (dynamic registrations survive updates but not
+// a full uninstall+reinstall, so we restore them from storage).
+chrome.runtime.onInstalled.addListener(async () => {
   chrome.contextMenus.create({
     id: 'kvmPaste',
     title: 'Paste to KVM Console',
     contexts: ['page', 'frame'],
   });
+  await reRegisterAllDomains();
 });
+
+// Also re-register on browser startup (registrations persist, but this
+// guards against edge cases where the profile was partially reset).
+chrome.runtime.onStartup.addListener(async () => {
+  await reRegisterAllDomains();
+});
+
+async function reRegisterAllDomains() {
+  const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
+  for (const domain of enabledDomains) {
+    const id = `kvm-paste-${domain}`;
+    const origin = `https://${domain}/*`;
+    // Skip if already registered
+    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] }).catch(() => []);
+    if (existing.length > 0) continue;
+    // Check we still have the host permission
+    const hasPerm = await chrome.permissions.contains({ origins: [origin] }).catch(() => false);
+    if (!hasPerm) continue;
+    try {
+      await chrome.scripting.registerContentScripts([{
+        id,
+        matches: [origin],
+        js: ['lib/keysym-map.js', 'content.js'],
+        runAt: 'document_idle',
+        allFrames: true,
+      }]);
+    } catch (e) { /* already registered or permission lost */ }
+  }
+}
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'kvmPaste' || !tab?.id) return;

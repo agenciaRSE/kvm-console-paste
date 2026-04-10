@@ -257,6 +257,159 @@ input[type="range"]::-webkit-slider-thumb:hover {
   height: 14px;
 }
 
+/* Site permission section */
+.site-section {
+  margin-bottom: 14px;
+}
+
+.site-blocked {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.site-blocked-msg {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.btn-enable {
+  width: 100%;
+  background: #3fb950;
+  color: #0d1117;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-enable:hover {
+  background: #56d364;
+  transform: translateY(-1px);
+}
+
+/* Current site indicator in header */
+.site-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #3fb950;
+  background: rgba(63,185,80,0.1);
+  border: 1px solid rgba(63,185,80,0.25);
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin-top: 5px;
+}
+
+.site-tag .disable-site {
+  background: none;
+  border: none;
+  color: #6e7681;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 0 0 2px;
+  line-height: 1;
+}
+
+.site-tag .disable-site:hover {
+  color: #f85149;
+}
+
+/* Enabled sites list */
+.sites-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  cursor: pointer;
+  color: #8b949e;
+  font-size: 12px;
+  user-select: none;
+  padding: 3px 0;
+}
+
+.sites-header:hover {
+  color: #c9d1d9;
+}
+
+.sites-badge {
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  font-size: 10px;
+  padding: 1px 6px;
+  color: #8b949e;
+}
+
+.sites-chevron {
+  margin-left: auto;
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.sites-chevron.open {
+  transform: rotate(90deg);
+}
+
+.sites-list {
+  margin-top: 6px;
+  border: 1px solid #21262d;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.site-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #c9d1d9;
+  border-bottom: 1px solid #21262d;
+}
+
+.site-item:last-child {
+  border-bottom: none;
+}
+
+.site-item-domain {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-item-remove {
+  background: none;
+  border: none;
+  color: #6e7681;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.site-item-remove:hover {
+  color: #f85149;
+}
+
+.sites-empty {
+  padding: 10px;
+  text-align: center;
+  font-size: 11px;
+  color: #484f58;
+}
+
 /* Footer */
 footer {
   border-top: 1px solid #21262d;

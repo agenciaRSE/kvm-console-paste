@@ -19,8 +19,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const newlineValue = document.getElementById('newlineValue');
   const autoPaste = document.getElementById('autoPaste');
   const showOverlay = document.getElementById('showOverlay');
+  const siteSection = document.getElementById('siteSection');
+  const mainSection = document.getElementById('mainSection');
+  const enableBtn = document.getElementById('enableBtn');
+  const sitesToggle = document.getElementById('sitesToggle');
+  const sitesList = document.getElementById('sitesList');
+  const sitesBadge = document.getElementById('sitesBadge');
+  const sitesChevron = document.getElementById('sitesChevron');
 
   let currentTabId = null;
+  let currentDomain = null;
   let consoleFrameId = null;
   let pollInterval = null;
 
@@ -41,9 +49,201 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ─── Get active tab ────────────────────────────────────────────────
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab) {
-    currentTabId = tab.id;
+  if (!tab) return;
+
+  currentTabId = tab.id;
+  try {
+    const url = new URL(tab.url);
+    currentDomain = url.hostname;
+  } catch (e) {
+    currentDomain = null;
+  }
+
+  // ─── Site permission check ─────────────────────────────────────────
+
+  await refreshSiteUI();
+  renderSitesList();
+
+  // ─── Enable site button ────────────────────────────────────────────
+
+  enableBtn.addEventListener('click', async () => {
+    if (!currentDomain) return;
+    enableBtn.disabled = true;
+    enableBtn.textContent = 'Requesting permission...';
+
+    const origin = buildOrigin(tab.url);
+    if (!origin) { enableBtn.disabled = false; enableBtn.textContent = 'Enable on this site'; return; }
+
+    let granted = false;
+    try {
+      granted = await chrome.permissions.request({ origins: [origin] });
+    } catch (e) { /* user dismissed */ }
+
+    if (!granted) {
+      enableBtn.disabled = false;
+      enableBtn.textContent = 'Enable on this site';
+      return;
+    }
+
+    // Register content script for this domain (persists across sessions)
+    await registerScriptForDomain(currentDomain, origin);
+
+    // Save domain to storage list
+    await saveDomain(currentDomain);
+
+    // Inject into the already-loaded page immediately
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: currentTabId, allFrames: true },
+        files: ['lib/keysym-map.js', 'content.js'],
+      });
+    } catch (e) { /* restricted page */ }
+
+    await refreshSiteUI();
+    renderSitesList();
     checkStatus();
+  });
+
+  // ─── Sites list toggle ─────────────────────────────────────────────
+
+  sitesToggle.addEventListener('click', () => {
+    const isOpen = sitesList.style.display !== 'none';
+    sitesList.style.display = isOpen ? 'none' : 'block';
+    sitesChevron.classList.toggle('open', !isOpen);
+  });
+
+  // ─── Site UI helpers ───────────────────────────────────────────────
+
+  async function isSiteEnabled(domain) {
+    if (!domain) return false;
+    const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
+    return enabledDomains.includes(domain);
+  }
+
+  function buildOrigin(tabUrl) {
+    try {
+      const u = new URL(tabUrl);
+      if (!u.hostname) return null;
+      return `${u.protocol}//${u.hostname}/*`;
+    } catch (e) { return null; }
+  }
+
+  async function registerScriptForDomain(domain, origin) {
+    const id = `kvm-paste-${domain}`;
+    // Unregister first to avoid duplicate error
+    try { await chrome.scripting.unregisterContentScripts({ ids: [id] }); } catch (e) { /* not registered */ }
+    await chrome.scripting.registerContentScripts([{
+      id,
+      matches: [origin],
+      js: ['lib/keysym-map.js', 'content.js'],
+      runAt: 'document_idle',
+      allFrames: true,
+    }]);
+  }
+
+  async function saveDomain(domain) {
+    const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
+    if (!enabledDomains.includes(domain)) {
+      enabledDomains.push(domain);
+      await chrome.storage.local.set({ enabledDomains });
+    }
+  }
+
+  async function removeDomain(domain) {
+    // Unregister content script
+    try { await chrome.scripting.unregisterContentScripts({ ids: [`kvm-paste-${domain}`] }); } catch (e) { /* ok */ }
+    // Remove host permission
+    try {
+      await chrome.permissions.remove({ origins: [`https://${domain}/*`, `http://${domain}/*`] });
+    } catch (e) { /* ok */ }
+    // Remove from storage
+    const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
+    await chrome.storage.local.set({ enabledDomains: enabledDomains.filter(d => d !== domain) });
+  }
+
+  async function refreshSiteUI() {
+    const enabled = await isSiteEnabled(currentDomain);
+
+    if (!currentDomain || currentDomain === 'newtab' || tab.url.startsWith('chrome://')) {
+      // Can't run on chrome:// pages
+      siteSection.style.display = 'none';
+      mainSection.style.display = 'block';
+      return;
+    }
+
+    if (enabled) {
+      siteSection.style.display = 'none';
+      mainSection.style.display = 'block';
+      // Show site tag in header if not already there
+      if (!document.getElementById('siteTag')) {
+        const tag = document.createElement('div');
+        tag.id = 'siteTag';
+        tag.className = 'site-tag';
+        const domainSpan = document.createElement('span');
+        domainSpan.textContent = currentDomain;
+        const disableBtn = document.createElement('button');
+        disableBtn.className = 'disable-site';
+        disableBtn.title = 'Disable on this site';
+        disableBtn.textContent = '✕';
+        disableBtn.addEventListener('click', async () => {
+          await removeDomain(currentDomain);
+          tag.remove();
+          await refreshSiteUI();
+          renderSitesList();
+        });
+        tag.appendChild(domainSpan);
+        tag.appendChild(disableBtn);
+        document.querySelector('#status').after(tag);
+      }
+    } else {
+      siteSection.style.display = 'block';
+      mainSection.style.display = 'none';
+      document.getElementById('siteTag')?.remove();
+      enableBtn.disabled = false;
+      enableBtn.textContent = 'Enable on this site';
+    }
+  }
+
+  async function renderSitesList() {
+    const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
+    sitesBadge.textContent = enabledDomains.length;
+
+    // Clear existing items
+    while (sitesList.firstChild) sitesList.removeChild(sitesList.firstChild);
+
+    if (enabledDomains.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'sites-empty';
+      empty.textContent = 'No sites enabled yet';
+      sitesList.appendChild(empty);
+      return;
+    }
+
+    for (const domain of enabledDomains) {
+      const item = document.createElement('div');
+      item.className = 'site-item';
+
+      const domainEl = document.createElement('span');
+      domainEl.className = 'site-item-domain';
+      domainEl.textContent = domain;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'site-item-remove';
+      removeBtn.title = 'Remove';
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', async () => {
+        await removeDomain(domain);
+        if (domain === currentDomain) {
+          document.getElementById('siteTag')?.remove();
+          await refreshSiteUI();
+        }
+        renderSitesList();
+      });
+
+      item.appendChild(domainEl);
+      item.appendChild(removeBtn);
+      sitesList.appendChild(item);
+    }
   }
 
   // ─── Messaging helper: send to the correct frame ───────────────────
@@ -58,12 +258,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function checkStatus() {
     if (!currentTabId) return;
 
-    // Get all frames in the tab
     let frames;
     try {
       frames = await chrome.webNavigation.getAllFrames({ tabId: currentTabId });
     } catch (e) {
-      frames = [{ frameId: 0 }]; // Fallback: just try main frame
+      frames = [{ frameId: 0 }];
     }
 
     let found = false;
@@ -84,9 +283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           found = true;
           break;
         }
-      } catch (e) {
-        // Frame may not have our content script
-      }
+      } catch (e) { /* frame may not have content script yet */ }
     }
 
     if (!found) {
@@ -107,44 +304,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const val = speedSlider.value;
     speedValue.textContent = val + 'ms';
     chrome.storage.local.set({ typingDelay: parseInt(val) });
-    if (currentTabId) {
-      sendToConsole({
-        action: 'updateSettings',
-        settings: { typingDelay: parseInt(val) },
-      }).catch(() => {});
-    }
+    if (currentTabId) sendToConsole({ action: 'updateSettings', settings: { typingDelay: parseInt(val) } }).catch(() => {});
   });
 
   newlineSlider.addEventListener('input', () => {
     const val = newlineSlider.value;
     newlineValue.textContent = val + 'ms';
     chrome.storage.local.set({ newlineDelay: parseInt(val) });
-    if (currentTabId) {
-      sendToConsole({
-        action: 'updateSettings',
-        settings: { newlineDelay: parseInt(val) },
-      }).catch(() => {});
-    }
+    if (currentTabId) sendToConsole({ action: 'updateSettings', settings: { newlineDelay: parseInt(val) } }).catch(() => {});
   });
 
   autoPaste.addEventListener('change', () => {
     chrome.storage.local.set({ autoPasteOnCtrlV: autoPaste.checked });
-    if (currentTabId) {
-      sendToConsole({
-        action: 'updateSettings',
-        settings: { autoPasteOnCtrlV: autoPaste.checked },
-      }).catch(() => {});
-    }
+    if (currentTabId) sendToConsole({ action: 'updateSettings', settings: { autoPasteOnCtrlV: autoPaste.checked } }).catch(() => {});
   });
 
   showOverlay.addEventListener('change', () => {
     chrome.storage.local.set({ showProgressOverlay: showOverlay.checked });
-    if (currentTabId) {
-      sendToConsole({
-        action: 'updateSettings',
-        settings: { showProgressOverlay: showOverlay.checked },
-      }).catch(() => {});
-    }
+    if (currentTabId) sendToConsole({ action: 'updateSettings', settings: { showProgressOverlay: showOverlay.checked } }).catch(() => {});
   });
 
   sendBtn.addEventListener('click', async () => {
@@ -161,7 +338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       await sendToConsole({
         action: 'sendText',
-        text: text,
+        text,
         delay: parseInt(speedSlider.value),
         newlineDelay: parseInt(newlineSlider.value),
       });
@@ -210,13 +387,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     sendBtn.style.display = 'inline-block';
     cancelBtn.style.display = 'none';
     textInput.disabled = false;
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      pollInterval = null;
-    }
-    setTimeout(() => {
-      progressSection.style.display = 'none';
-    }, 500);
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    setTimeout(() => { progressSection.style.display = 'none'; }, 500);
     checkStatus();
   }
 });
