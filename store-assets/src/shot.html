@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KVM Console Paste - store shot</title>
+<!--
+  Chrome Web Store graphics, rendered from the REAL popup.html / content.js
+  with a stubbed chrome.* API over a demo console. Never shows a real server.
+  Serve the repo root over HTTP and open:
+    store-assets/src/shot.html?scene=1..4|tile|marquee&lang=en|es
+  build.sh renders every scene at its exact size.
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #0b0f17; overflow: hidden; }
+  body { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif; color: #e6edf3; }
+
+  /* 1280x800 screenshots */
+  .shot { width: 1280px; height: 800px; position: relative;
+    background: radial-gradient(1200px 500px at 50% -10%, #12324a 0%, #0b0f17 60%); }
+  .caption { position: absolute; top: 34px; left: 0; right: 0; text-align: center; }
+  .caption h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.5px; }
+  .caption p { margin-top: 8px; font-size: 20px; color: #9fb3c8; }
+  .window { position: absolute; left: 60px; right: 60px; top: 160px; bottom: -12px;
+    border-radius: 12px 12px 0 0; overflow: hidden; background: #000;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px #2b3440; }
+  .bar { height: 44px; background: #202329; display: flex; align-items: center; gap: 14px; padding: 0 16px; }
+  .dots { display: flex; gap: 8px; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; display: block; }
+  .dots i:nth-child(2) { background: #febc2e; } .dots i:nth-child(3) { background: #28c840; }
+  .url { flex: 1; height: 28px; border-radius: 14px; background: #2c3038; color: #aab2bd;
+    font-size: 13px; display: flex; align-items: center; padding: 0 14px; }
+  .ext { width: 28px; height: 28px; border-radius: 6px; background: #2c3038; display: grid; place-items: center; }
+  .ext img { width: 18px; height: 18px; }
+  .ext.on { box-shadow: 0 0 0 2px #64ffda; }
+  #noVNC_canvas { display: block; width: 1160px; height: 600px; }
+  #popup { position: absolute; right: 22px; top: 50px; width: 360px; border: 0; border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.65), 0 0 0 1px #30363d; background: #0d1117; }
+  /* Keep the real overlay inside the mock browser window. */
+  #kvm-paste-overlay, #kvm-paste-confirm { right: 84px !important; bottom: 28px !important; }
+  #kvm-paste-confirm { box-shadow: 0 12px 40px rgba(0,0,0,.7) !important; }
+
+  /* 440x280 promo tile */
+  .tile { width: 440px; height: 280px; position: relative; padding: 34px;
+    background: radial-gradient(420px 260px at 85% 0%, #12324a 0%, #0b0f17 70%); }
+  .tile img { width: 72px; height: 72px; }
+  .tile h1 { margin-top: 18px; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; }
+  .tile p { margin-top: 8px; font-size: 17px; color: #9fb3c8; line-height: 1.35; }
+  .tile .key { position: absolute; right: 30px; top: 40px; }
+
+  /* 1400x560 marquee */
+  .marquee { width: 1400px; height: 560px; position: relative;
+    background: radial-gradient(900px 500px at 75% 10%, #12324a 0%, #0b0f17 65%); }
+  .marquee .copy { position: absolute; left: 90px; top: 110px; width: 560px; }
+  .marquee .copy img { width: 84px; height: 84px; }
+  .marquee h1 { margin-top: 22px; font-size: 52px; font-weight: 700; letter-spacing: -1px; }
+  .marquee p { margin-top: 12px; font-size: 24px; color: #9fb3c8; line-height: 1.4; }
+  .marquee .window { left: 640px; right: 50px; top: 40px; bottom: 40px; border-radius: 12px; }
+  .marquee #noVNC_canvas { width: 710px; height: 436px; }
+  body.is-marquee #kvm-paste-confirm { right: 70px !important; bottom: 56px !important; }
+
+  .key { display: inline-flex; gap: 6px; }
+  .key kbd { font: 600 15px/1 "Segoe UI", sans-serif; color: #0d1117; background: #64ffda;
+    border-radius: 6px; padding: 8px 10px; box-shadow: 0 3px 0 #2bb39a; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const scene = params.get('scene') || '1';
+  const lang = params.get('lang') || 'en';
+  const messages = await (await fetch(`/_locales/${lang}/messages.json`)).json();
+
+  const CAPTIONS = {
+    en: {
+      1: ['Paste into any noVNC web console', 'IONOS, Proxmox, Plesk and any host that uses noVNC'],
+      2: ['Asks before running commands', 'Each line break presses Enter on the server. You see it first.'],
+      3: ['Just press Ctrl+V on the console', 'Typed at the speed you choose, with progress and Cancel'],
+      4: ['Off by default. You choose each site', 'Including the console frame, even on another domain'],
+      tile: 'Paste text into noVNC web consoles',
+      marquee: 'Paste text into KVM web consoles that have no clipboard. IONOS, Proxmox, Plesk.',
+    },
+    es: {
+      1: ['Pega en cualquier consola web noVNC', 'IONOS, Proxmox, Plesk y cualquier proveedor con noVNC'],
+      2: ['Pregunta antes de ejecutar comandos', 'Cada salto de línea pulsa Enter en el servidor. Lo ves antes.'],
+      3: ['Solo pulsa Ctrl+V en la consola', 'Se teclea a la velocidad que elijas, con progreso y Cancelar'],
+      4: ['Desactivada por defecto. Tú eliges cada sitio', 'Incluido el frame de la consola, aunque esté en otro dominio'],
+      tile: 'Pega texto en consolas web noVNC',
+      marquee: 'Pega texto en consolas KVM web que no tienen portapapeles. IONOS, Proxmox, Plesk.',
+    },
+  }[lang];
+
+  const PANEL = 'panel.example-host.com';
+  const CONSOLE = 'console.example-host.com';
+  const MULTI = 'sudo apt update\nsudo apt install -y nginx\nsystemctl status nginx\n';
+
+  // ─── chrome.* stub (shared by content.js here and the popup iframe) ───
+  const state = {
+    store: { typingDelay: 50, newlineDelay: 500, autoPasteOnCtrlV: true, showProgressOverlay: true,
+      confirmMultiline: true, enabledDomains: [PANEL], siteOrigins: { [PANEL]: [`https://${PANEL}/*`, `https://${CONSOLE}/*`] } },
+    granted: true,
+    frames: [{ frameId: 0, url: `https://${PANEL}/vps/42/console` }, { frameId: 3, url: `https://${CONSOLE}/vnc/` }],
+  };
+  window.makeChrome = () => ({
+    i18n: {
+      getMessage(key, subs) {
+        let m = messages[key]?.message || '';
+        [].concat(subs || []).forEach((s, i) => { m = m.split('$' + (i + 1)).join(s); });
+        return m;
+      },
+      getUILanguage: () => lang,
+    },
+    storage: { local: {
+      get: async (keys, cb) => { const r = { ...state.store }; if (cb) cb(r); return r; },
+      set: async () => {},
+    } },
+    tabs: {
+      query: async () => [{ id: 1, url: `https://${PANEL}/vps/42/console` }],
+      sendMessage: async (tabId, msg, opts) => (msg.action === 'getStatus'
+        ? { consoleDetected: state.granted && opts?.frameId === 3, sending: false } : { ok: true }),
+    },
+    webNavigation: { getAllFrames: async () => state.frames },
+    permissions: { contains: async () => state.granted, request: async () => true, remove: async () => true },
+    scripting: { getRegisteredContentScripts: async () => [], registerContentScripts: async () => {},
+      unregisterContentScripts: async () => {}, executeScript: async () => [] },
+    commands: { getAll: async () => [{ name: '_execute_action', shortcut: 'Alt+Shift+V' }] },
+    runtime: { sendMessage() {}, onMessage: { addListener() {} } },
+  });
+  window.chrome = window.makeChrome();
+
+  const root = document.getElementById('root');
+  const icon = '/icons/icon128.png';
+
+  // ─── Demo console (canvas, so content.js detects it like noVNC) ───
+  const term = { lines: [
+    'Ubuntu 24.04.1 LTS vps-demo tty1', '',
+    'vps-demo login: admin', 'Password:',
+    'Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 6.8.0-45-generic x86_64)', '',
+    'admin@vps-demo:~$ ',
+  ] };
+  function drawTerm(canvas) {
+    const ctx = canvas.getContext('2d');
+    const scale = canvas.width / canvas.clientWidth;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = `${17 * scale}px Consolas, "Cascadia Mono", monospace`;
+    ctx.textBaseline = 'top';
+    term.lines.forEach((line, i) => {
+      ctx.fillStyle = line.startsWith('admin@') ? '#d7dde5' : '#b9c2cc';
+      ctx.fillText(line, 18 * scale, (18 + i * 26) * scale);
+    });
+    const last = term.lines[term.lines.length - 1];
+    const x = (18 + ctx.measureText(last).width / scale) * scale;
+    ctx.fillStyle = '#d7dde5';
+    ctx.fillRect(x, (18 + (term.lines.length - 1) * 26) * scale, 10 * scale, 20 * scale);
+  }
+
+  function browserWindow(urlHost, withPopup) {
+    const win = document.createElement('div');
+    win.className = 'window';
+    win.innerHTML = `<div class="bar"><span class="dots"><i></i><i></i><i></i></span>
+      <span class="url">https://${urlHost}/vps/42/console</span>
+      <span class="ext ${withPopup ? 'on' : ''}"><img src="${icon}" alt=""></span></div>`;
+    const canvas = document.createElement('canvas');
+    canvas.id = 'noVNC_canvas';
+    canvas.tabIndex = 0;
+    win.appendChild(canvas);
+    return { win, canvas };
+  }
+
+  function sizeCanvas(canvas) {
+    canvas.width = canvas.clientWidth * 2;
+    canvas.height = canvas.clientHeight * 2;
+    drawTerm(canvas);
+    // Strategy C dispatches key events on the canvas: echo them like a shell.
+    canvas.addEventListener('keydown', (e) => {
+      if (e.key === 'Shift') return;
+      if (e.key === 'Enter') term.lines.push('');
+      else term.lines[term.lines.length - 1] += e.key.length === 1 ? e.key : '';
+      drawTerm(canvas);
+    });
+  }
+
+  async function loadPopup(container, setup) {
+    let html = await (await fetch('/popup.html')).text();
+    html = html.replace('<head>', '<head><base href="/">')
+      .replace('<script src="lib/keysym-map.js">', '<script>window.chrome = parent.makeChrome();</' + 'script><script src="lib/keysym-map.js">');
+    const frame = document.createElement('iframe');
+    frame.id = 'popup';
+    frame.title = 'Extension popup';
+    container.appendChild(frame);
+    await new Promise((r) => { frame.onload = r; frame.srcdoc = html; });
+    await new Promise((r) => setTimeout(r, 400));
+    if (setup) await setup(frame.contentDocument);
+    await new Promise((r) => setTimeout(r, 200));
+    frame.style.height = frame.contentDocument.documentElement.scrollHeight + 'px';
+  }
+
+  function loadScript(src) {
+    return new Promise((r) => { const s = document.createElement('script'); s.src = src; s.onload = r; document.body.appendChild(s); });
+  }
+
+  function paste(text) {
+    const dt = new DataTransfer();
+    dt.setData('text/plain', text);
+    document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  }
+
+  function shotFrame(n) {
+    const shot = document.createElement('div');
+    shot.className = 'shot';
+    shot.innerHTML = `<div class="caption"><h1></h1><p></p></div>`;
+    shot.querySelector('h1').textContent = CAPTIONS[n][0];
+    shot.querySelector('p').textContent = CAPTIONS[n][1];
+    root.appendChild(shot);
+    return shot;
+  }
+
+  if (scene === 'tile') {
+    root.innerHTML = `<div class="tile"><img src="${icon}" alt=""><span class="key"><kbd>Ctrl</kbd><kbd>V</kbd></span>
+      <h1>KVM Console Paste</h1><p></p></div>`;
+    root.querySelector('p').textContent = CAPTIONS.tile;
+  } else if (scene === 'marquee') {
+    const m = document.createElement('div');
+    m.className = 'marquee';
+    document.body.classList.add('is-marquee');
+    m.innerHTML = `<div class="copy"><img src="${icon}" alt=""><h1>KVM Console Paste</h1><p></p></div>`;
+    m.querySelector('p').textContent = CAPTIONS.marquee;
+    const { win, canvas } = browserWindow(CONSOLE, false);
+    m.appendChild(win);
+    root.appendChild(m);
+    sizeCanvas(canvas);
+    await loadScript('/lib/keysym-map.js');
+    await loadScript('/content.js');
+    canvas.focus();
+    paste(MULTI);
+  } else {
+    const shot = shotFrame(scene);
+    const { win, canvas } = browserWindow(PANEL, scene === '1' || scene === '4');
+    shot.appendChild(win);
+    sizeCanvas(canvas);
+    if (scene === '3') state.store.typingDelay = 120;
+    await loadScript('/lib/keysym-map.js');
+    await loadScript('/content.js');
+    canvas.focus();
+
+    if (scene === '1') {
+      await loadPopup(win, (doc) => {
+        const ta = doc.getElementById('textInput');
+        ta.value = MULTI.trimEnd();
+        ta.dispatchEvent(new Event('input'));
+      });
+    } else if (scene === '2') {
+      paste(MULTI);
+    } else if (scene === '3') {
+      paste('sudo ufw allow 443/tcp && sudo ufw status verbose');
+    } else if (scene === '4') {
+      state.granted = false;
+      state.store.enabledDomains = [];
+      state.store.siteOrigins = {};
+      await loadPopup(win);
+    }
+  }
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

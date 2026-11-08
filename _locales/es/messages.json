@@ -1,0 +1,137 @@
+{
+  "extName": {
+    "message": "KVM Console Paste"
+  },
+  "extDescription": {
+    "message": "Pega texto en consolas KVM web noVNC (IONOS, Proxmox, Plesk) tecleándolo como pulsaciones."
+  },
+  "menuPaste": {
+    "message": "Pegar en la consola KVM"
+  },
+  "statusDetecting": {
+    "message": "Buscando consola..."
+  },
+  "statusDetected": {
+    "message": "Consola KVM detectada"
+  },
+  "statusNone": {
+    "message": "No hay ninguna consola KVM en esta página"
+  },
+  "statusSendError": {
+    "message": "Error: no se pudo enviar el texto a la consola"
+  },
+  "siteNotEnabled": {
+    "message": "Aún no está activada aquí. Permitir que la extensión funcione en:"
+  },
+  "enableSite": {
+    "message": "Activar en este sitio"
+  },
+  "requestingPermission": {
+    "message": "Pidiendo permiso..."
+  },
+  "textToSend": {
+    "message": "Texto a enviar:"
+  },
+  "textPlaceholder": {
+    "message": "Pega aquí el texto que quieres teclear en la consola..."
+  },
+  "typingSpeed": {
+    "message": "Velocidad de escritura:"
+  },
+  "fast": {
+    "message": "Rápida"
+  },
+  "slow": {
+    "message": "Lenta"
+  },
+  "msPerChar": {
+    "message": "$1 ms por carácter"
+  },
+  "msValue": {
+    "message": "$1 ms"
+  },
+  "newlineDelay": {
+    "message": "Pausa tras Enter (para comandos):"
+  },
+  "send": {
+    "message": "Enviar a la consola"
+  },
+  "cancel": {
+    "message": "Cancelar"
+  },
+  "clear": {
+    "message": "Borrar"
+  },
+  "progressLabel": {
+    "message": "Progreso del envío"
+  },
+  "options": {
+    "message": "Opciones"
+  },
+  "optAutoPaste": {
+    "message": "Pegar con Ctrl+V en la consola"
+  },
+  "optOverlay": {
+    "message": "Mostrar el progreso en la página"
+  },
+  "optConfirm": {
+    "message": "Preguntar antes de pegar texto con saltos de línea"
+  },
+  "enabledSites": {
+    "message": "Sitios activados"
+  },
+  "noSites": {
+    "message": "Aún no hay sitios activados"
+  },
+  "disableOn": {
+    "message": "Desactivar en $1"
+  },
+  "removeSite": {
+    "message": "Quitar $1"
+  },
+  "newTab": {
+    "message": "(se abre en una pestaña nueva)"
+  },
+  "by": {
+    "message": "por"
+  },
+  "donate": {
+    "message": "Donar"
+  },
+  "shortcut": {
+    "message": "Atajo: $1"
+  },
+  "lineBreakOne": {
+    "message": "1 salto de línea: pulsa Enter y ejecuta un comando."
+  },
+  "lineBreakMany": {
+    "message": "$1 saltos de línea: cada uno pulsa Enter y ejecuta un comando."
+  },
+  "nonAscii": {
+    "message": "Pueden salir mal según el teclado del servidor: $1"
+  },
+  "confirmTitle": {
+    "message": "¿Pegar en la consola?"
+  },
+  "confirmPaste": {
+    "message": "Pegar"
+  },
+  "overlaySending": {
+    "message": "Enviando $1/$2 ($3 %)"
+  },
+  "overlayPreparing": {
+    "message": "Preparando..."
+  },
+  "overlayDone": {
+    "message": "Hecho"
+  },
+  "overlayDoneText": {
+    "message": "Texto enviado"
+  },
+  "overlayClipboardError": {
+    "message": "No se pudo leer el portapapeles. Usa Ctrl+V o el popup de la extensión."
+  },
+  "statusDisabled": {
+    "message": "Desactivada en este sitio"
+  }
+}

@@ -23,7 +23,7 @@ This extension:
 
 The extension processes the following data **entirely locally within your browser**:
 
-- **Clipboard content**: Read only when you explicitly paste (Ctrl+V) on a KVM console page or use the "Send to Console" button. The clipboard text is immediately converted to simulated keystrokes and is never stored or transmitted.
+- **Clipboard content**: Read only when you explicitly paste (Ctrl+V) on a KVM console page or use the "Send to console" button or the context menu. The clipboard text is immediately converted to simulated keystrokes and is never stored or transmitted.
 - **User preferences**: Settings (typing speed, newline delay, toggle options) are stored locally in Chrome's `storage.local` API and never leave your device.
 
 ## Permissions Explained

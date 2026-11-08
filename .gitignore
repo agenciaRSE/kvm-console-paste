@@ -7,3 +7,6 @@ store-assets/nanobanana-output/
 # OS
 .DS_Store
 Thumbs.db
+
+# Packaged extension
+dist/

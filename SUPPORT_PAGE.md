@@ -43,7 +43,7 @@ Open your KVM console in the browser, click inside the console so it has focus, 
 
 **The right-click way**
 
-Select any text on a webpage, right-click it, and choose "Paste to KVM Console" from the context menu. The selected text will be sent directly to the console.
+Copy the text, right-click the console and choose "Paste to KVM console". The extension reads your clipboard and types it into the console.
 
 **Adjusting speed**
 
@@ -164,7 +164,7 @@ Chrome greys out extension icons on pages where the extension isn't allowed to r
 Try disabling and re-enabling the extension from `chrome://extensions/`. If that doesn't help, uninstall and reinstall it. Chrome extension updates occasionally require a fresh injection into existing tabs — a browser restart usually fixes it.
 
 **Right-click context menu option doesn't appear**
-The context menu option only appears when you right-click on a page where a KVM console has been detected, or when you have text selected. On pages without a detected console, the option is hidden to keep the menu clean.
+The context menu option pastes your clipboard into the detected console. On a site you have not enabled, nothing happens: enable the site from the popup first.
 
 ---
 

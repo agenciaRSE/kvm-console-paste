@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const speedValue = document.getElementById('speedValue');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
-  const strategyInfo = document.getElementById('strategyInfo');
   const progressSection = document.getElementById('progressSection');
   const progressFill = document.getElementById('progressFill');
   const progressText = document.getElementById('progressText');
@@ -26,25 +25,74 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sitesList = document.getElementById('sitesList');
   const sitesBadge = document.getElementById('sitesBadge');
   const sitesChevron = document.getElementById('sitesChevron');
+  const siteHosts = document.getElementById('siteHosts');
+  const progressBar = document.getElementById('progressBar');
+
+  function setProgress(pct) {
+    progressFill.style.width = pct + '%';
+    progressText.textContent = pct + '%';
+    progressBar.setAttribute('aria-valuenow', String(pct));
+  }
 
   let currentTabId = null;
   let currentDomain = null;
   let consoleFrameId = null;
   let pollInterval = null;
 
+  const confirmMultiline = document.getElementById('confirmMultiline');
+  const textInfo = document.getElementById('textInfo');
+  const shortcutInfo = document.getElementById('shortcutInfo');
+
+  // ─── i18n ──────────────────────────────────────────────────────────
+
+  const t = (key, subs) => chrome.i18n.getMessage(key, subs) || key;
+  document.documentElement.lang = chrome.i18n.getUILanguage();
+  for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+  for (const node of document.querySelectorAll('[data-i18n-placeholder]')) node.placeholder = t(node.dataset.i18nPlaceholder);
+  for (const node of document.querySelectorAll('[data-i18n-label]')) node.setAttribute('aria-label', t(node.dataset.i18nLabel));
+
+  chrome.commands.getAll().then((commands) => {
+    const shortcut = commands.find((c) => c.name === '_execute_action')?.shortcut;
+    if (shortcut) shortcutInfo.textContent = t('shortcut', [shortcut]);
+  }).catch(() => {});
+
   // ─── Load settings ─────────────────────────────────────────────────
 
-  const stored = await chrome.storage.local.get(['typingDelay', 'newlineDelay', 'autoPasteOnCtrlV', 'showProgressOverlay']);
-  if (stored.typingDelay != null) {
-    speedSlider.value = stored.typingDelay;
-    speedValue.textContent = stored.typingDelay + 'ms';
+  function showSpeed(val) {
+    speedValue.textContent = t('msValue', [String(val)]);
+    speedSlider.setAttribute('aria-valuetext', t('msPerChar', [String(val)]));
   }
-  if (stored.newlineDelay != null) {
-    newlineSlider.value = stored.newlineDelay;
-    newlineValue.textContent = stored.newlineDelay + 'ms';
+  function showNewline(val) {
+    newlineValue.textContent = t('msValue', [String(val)]);
+    newlineSlider.setAttribute('aria-valuetext', t('msValue', [String(val)]));
   }
+
+  const stored = await chrome.storage.local.get(['typingDelay', 'newlineDelay', 'autoPasteOnCtrlV', 'showProgressOverlay', 'confirmMultiline']);
+  if (stored.typingDelay != null) speedSlider.value = stored.typingDelay;
+  if (stored.newlineDelay != null) newlineSlider.value = stored.newlineDelay;
+  showSpeed(speedSlider.value);
+  showNewline(newlineSlider.value);
   if (stored.autoPasteOnCtrlV != null) autoPaste.checked = stored.autoPasteOnCtrlV;
   if (stored.showProgressOverlay != null) showOverlay.checked = stored.showProgressOverlay;
+  if (stored.confirmMultiline != null) confirmMultiline.checked = stored.confirmMultiline;
+
+  // What will happen when this text is typed (line breaks run commands,
+  // non-ASCII depends on the server layout). Linked via aria-describedby.
+  function updateTextInfo() {
+    const { lineBreaks, nonAscii } = KeysymMap.analyze(textInput.value);
+    while (textInfo.firstChild) textInfo.removeChild(textInfo.firstChild);
+    if (lineBreaks > 0) {
+      const p = document.createElement('p');
+      p.textContent = lineBreaks === 1 ? t('lineBreakOne') : t('lineBreakMany', [String(lineBreaks)]);
+      textInfo.appendChild(p);
+    }
+    if (nonAscii.length) {
+      const p = document.createElement('p');
+      p.className = 'warn';
+      p.textContent = t('nonAscii', [nonAscii.join(' ')]);
+      textInfo.appendChild(p);
+    }
+  }
 
   // ─── Get active tab ────────────────────────────────────────────────
 
@@ -61,38 +109,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ─── Site permission check ─────────────────────────────────────────
 
+  // Origins of every frame in the tab: the console is often an iframe on
+  // another host (IONOS: front-cloudpanel.ionos.com -> dcd.ionos.com).
+  // Computed now so the click handler can call permissions.request() first,
+  // while the user gesture is still valid.
+  let neededOrigins = [];
+  await computeNeededOrigins();
+
   await refreshSiteUI();
   renderSitesList();
+  // Find the frame with the console (on IONOS it is an iframe, not frame 0).
+  // A blocked site has no content script to answer: its status is already set.
+  if (siteSection.style.display === 'none') checkStatus();
 
   // ─── Enable site button ────────────────────────────────────────────
 
   enableBtn.addEventListener('click', async () => {
-    if (!currentDomain) return;
+    if (!currentDomain || !neededOrigins.length) return;
     enableBtn.disabled = true;
-    enableBtn.textContent = 'Requesting permission...';
-
-    const origin = buildOrigin(tab.url);
-    if (!origin) { enableBtn.disabled = false; enableBtn.textContent = 'Enable on this site'; return; }
+    enableBtn.textContent = t('requestingPermission');
 
     let granted = false;
     try {
-      granted = await chrome.permissions.request({ origins: [origin] });
+      granted = await chrome.permissions.request({ origins: neededOrigins });
     } catch (e) { /* user dismissed */ }
 
     if (!granted) {
       enableBtn.disabled = false;
-      enableBtn.textContent = 'Enable on this site';
+      enableBtn.textContent = t('enableSite');
       return;
     }
 
-    // Register content script for this domain (persists across sessions)
-    await registerScriptForDomain(currentDomain, origin);
+    // Persist + register content scripts for every origin (survives restarts)
+    await KvmSites.add(currentDomain, neededOrigins);
 
-    // Save domain to storage list
-    await saveDomain(currentDomain);
-
-    // Inject into the already-loaded page immediately
+    // Inject into the already-loaded page too. The page-world script arrives
+    // after noVNC opened its socket; it picks it up on noVNC's next send.
     try {
+      await chrome.scripting.executeScript({
+        target: { tabId: currentTabId, allFrames: true },
+        files: ['page-inject.js'],
+        world: 'MAIN',
+      });
       await chrome.scripting.executeScript({
         target: { tabId: currentTabId, allFrames: true },
         files: ['lib/keysym-map.js', 'content.js'],
@@ -101,7 +159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await refreshSiteUI();
     renderSitesList();
-    checkStatus();
+    // Content scripts need a moment to scan the frames.
+    setTimeout(checkStatus, 500);
   });
 
   // ─── Sites list toggle ─────────────────────────────────────────────
@@ -109,57 +168,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   sitesToggle.addEventListener('click', () => {
     const isOpen = sitesList.style.display !== 'none';
     sitesList.style.display = isOpen ? 'none' : 'block';
+    sitesToggle.setAttribute('aria-expanded', String(!isOpen));
     sitesChevron.classList.toggle('open', !isOpen);
   });
 
   // ─── Site UI helpers ───────────────────────────────────────────────
 
-  async function isSiteEnabled(domain) {
-    if (!domain) return false;
-    const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
-    return enabledDomains.includes(domain);
-  }
-
-  function buildOrigin(tabUrl) {
+  async function computeNeededOrigins() {
+    const set = new Set();
+    const add = (url) => {
+      try {
+        const u = new URL(url);
+        if (u.protocol === 'https:' || u.protocol === 'http:') set.add(`${u.protocol}//${u.hostname}/*`);
+      } catch (e) { /* about:blank, etc. */ }
+    };
+    add(tab.url);
     try {
-      const u = new URL(tabUrl);
-      if (!u.hostname) return null;
-      return `${u.protocol}//${u.hostname}/*`;
-    } catch (e) { return null; }
-  }
-
-  async function registerScriptForDomain(domain, origin) {
-    const id = `kvm-paste-${domain}`;
-    // Unregister first to avoid duplicate error
-    try { await chrome.scripting.unregisterContentScripts({ ids: [id] }); } catch (e) { /* not registered */ }
-    await chrome.scripting.registerContentScripts([{
-      id,
-      matches: [origin],
-      js: ['lib/keysym-map.js', 'content.js'],
-      runAt: 'document_idle',
-      allFrames: true,
-    }]);
-  }
-
-  async function saveDomain(domain) {
-    const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
-    if (!enabledDomains.includes(domain)) {
-      enabledDomains.push(domain);
-      await chrome.storage.local.set({ enabledDomains });
+      const frames = await chrome.webNavigation.getAllFrames({ tabId: currentTabId });
+      for (const f of frames || []) add(f.url);
+    } catch (e) { /* no frame info */ }
+    if (currentDomain) {
+      const { siteOrigins } = await KvmSites.load();
+      for (const o of siteOrigins[currentDomain] || []) set.add(o);
     }
+    neededOrigins = [...set];
   }
 
-  async function removeDomain(domain) {
-    // Unregister content script
-    try { await chrome.scripting.unregisterContentScripts({ ids: [`kvm-paste-${domain}`] }); } catch (e) { /* ok */ }
-    // Remove host permission
-    try {
-      await chrome.permissions.remove({ origins: [`https://${domain}/*`, `http://${domain}/*`] });
-    } catch (e) { /* ok */ }
-    // Remove from storage
-    const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
-    await chrome.storage.local.set({ enabledDomains: enabledDomains.filter(d => d !== domain) });
+  // Enabled = saved AND every origin currently needed is granted (a v1.0.x
+  // site, or a console moved to a new host, asks again).
+  async function isSiteEnabled(domain) {
+    if (!domain || !neededOrigins.length) return false;
+    const { enabledDomains } = await KvmSites.load();
+    if (!enabledDomains.includes(domain)) return false;
+    return chrome.permissions.contains({ origins: neededOrigins }).catch(() => false);
   }
+
+  const removeDomain = (domain) => KvmSites.remove(domain);
 
   async function refreshSiteUI() {
     const enabled = await isSiteEnabled(currentDomain);
@@ -183,7 +227,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         domainSpan.textContent = currentDomain;
         const disableBtn = document.createElement('button');
         disableBtn.className = 'disable-site';
-        disableBtn.title = 'Disable on this site';
+        disableBtn.title = t('disableOn', [currentDomain]);
+        disableBtn.setAttribute('aria-label', t('disableOn', [currentDomain]));
         disableBtn.textContent = '✕';
         disableBtn.addEventListener('click', async () => {
           await removeDomain(currentDomain);
@@ -198,14 +243,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       siteSection.style.display = 'block';
       mainSection.style.display = 'none';
+      const hosts = neededOrigins.map((o) => new URL(o.replace('/*', '/')).hostname);
+      siteHosts.textContent = hosts.join('\n');
+      statusText.textContent = t('statusDisabled');
       document.getElementById('siteTag')?.remove();
       enableBtn.disabled = false;
-      enableBtn.textContent = 'Enable on this site';
+      enableBtn.textContent = t('enableSite');
     }
   }
 
   async function renderSitesList() {
-    const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
+    const { enabledDomains } = await KvmSites.load();
     sitesBadge.textContent = enabledDomains.length;
 
     // Clear existing items
@@ -214,7 +262,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (enabledDomains.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'sites-empty';
-      empty.textContent = 'No sites enabled yet';
+      empty.textContent = t('noSites');
       sitesList.appendChild(empty);
       return;
     }
@@ -229,7 +277,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const removeBtn = document.createElement('button');
       removeBtn.className = 'site-item-remove';
-      removeBtn.title = 'Remove';
+      removeBtn.title = t('removeSite', [domain]);
+      removeBtn.setAttribute('aria-label', t('removeSite', [domain]));
       removeBtn.textContent = '✕';
       removeBtn.addEventListener('click', async () => {
         await removeDomain(domain);
@@ -277,8 +326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (response?.consoleDetected) {
           consoleFrameId = frame.frameId;
           statusDot.classList.add('active');
-          statusText.textContent = 'KVM console detected';
-          strategyInfo.textContent = `Frame: ${frame.frameId === 0 ? 'main' : frame.frameId}`;
+          statusText.textContent = t('statusDetected');
           sendBtn.disabled = !textInput.value.trim();
           found = true;
           break;
@@ -287,9 +335,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (!found) {
+      consoleFrameId = null;
       statusDot.classList.remove('active');
-      statusText.textContent = 'No KVM console detected on this page';
-      strategyInfo.textContent = '';
+      statusText.textContent = t('statusNone');
       sendBtn.disabled = true;
     }
   }
@@ -297,19 +345,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ─── Event handlers ────────────────────────────────────────────────
 
   textInput.addEventListener('input', () => {
-    sendBtn.disabled = !textInput.value.trim();
+    sendBtn.disabled = !textInput.value.trim() || consoleFrameId == null;
+    updateTextInfo();
   });
 
   speedSlider.addEventListener('input', () => {
     const val = speedSlider.value;
-    speedValue.textContent = val + 'ms';
+    showSpeed(val);
     chrome.storage.local.set({ typingDelay: parseInt(val) });
     if (currentTabId) sendToConsole({ action: 'updateSettings', settings: { typingDelay: parseInt(val) } }).catch(() => {});
   });
 
   newlineSlider.addEventListener('input', () => {
     const val = newlineSlider.value;
-    newlineValue.textContent = val + 'ms';
+    showNewline(val);
     chrome.storage.local.set({ newlineDelay: parseInt(val) });
     if (currentTabId) sendToConsole({ action: 'updateSettings', settings: { newlineDelay: parseInt(val) } }).catch(() => {});
   });
@@ -317,6 +366,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   autoPaste.addEventListener('change', () => {
     chrome.storage.local.set({ autoPasteOnCtrlV: autoPaste.checked });
     if (currentTabId) sendToConsole({ action: 'updateSettings', settings: { autoPasteOnCtrlV: autoPaste.checked } }).catch(() => {});
+  });
+
+  confirmMultiline.addEventListener('change', () => {
+    chrome.storage.local.set({ confirmMultiline: confirmMultiline.checked });
+    if (currentTabId) sendToConsole({ action: 'updateSettings', settings: { confirmMultiline: confirmMultiline.checked } }).catch(() => {});
   });
 
   showOverlay.addEventListener('change', () => {
@@ -331,21 +385,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     sendBtn.style.display = 'none';
     cancelBtn.style.display = 'inline-block';
     progressSection.style.display = 'flex';
-    progressFill.style.width = '0%';
-    progressText.textContent = '0%';
+    setProgress(0);
     textInput.disabled = true;
 
     try {
-      await sendToConsole({
+      const res = await sendToConsole({
         action: 'sendText',
         text,
         delay: parseInt(speedSlider.value),
         newlineDelay: parseInt(newlineSlider.value),
       });
+      if (!res?.ok) throw new Error(res?.error);
       startProgressPoll();
     } catch (e) {
       resetUI();
-      statusText.textContent = 'Error: Could not send text to console';
+      statusText.textContent = t('statusSendError');
     }
   });
 
@@ -359,6 +413,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   clearBtn.addEventListener('click', () => {
     textInput.value = '';
     sendBtn.disabled = true;
+    updateTextInfo();
+    textInput.focus();
   });
 
   // ─── Progress polling ──────────────────────────────────────────────
@@ -371,9 +427,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!response?.sending) {
           clearInterval(pollInterval);
           pollInterval = null;
-          progressFill.style.width = '100%';
-          progressText.textContent = '100%';
+          setProgress(100);
           setTimeout(() => resetUI(), 1000);
+        } else if (response.progress?.total) {
+          setProgress(Math.round((response.progress.current / response.progress.total) * 100));
         }
       } catch (e) {
         clearInterval(pollInterval);

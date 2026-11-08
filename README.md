@@ -12,7 +12,7 @@ A free Chrome extension that pastes text into web KVM consoles built on noVNC (I
 [![License: MIT](https://img.shields.io/badge/license-MIT-a855f7?style=for-the-badge)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=for-the-badge)](#-contributing)
 
-<img src="store-assets/02-marquee-banner-1400x560.png" width="100%" alt="KVM Console Paste banner: paste text into noVNC consoles">
+<img src="store-assets/marquee-1400x560-en.png" width="100%" alt="KVM Console Paste banner: paste text into noVNC consoles">
 
 **811 users · rated 5.0 on the Chrome Web Store** <sub>(November 2026)</sub>
 
@@ -30,15 +30,18 @@ Since noVNC can't take a pasted string, the extension **simulates the keystrokes
 
 <table>
   <tr>
-    <td width="50%"><img src="store-assets/03-screenshot-popup-detected.png" alt="Extension popup showing a detected noVNC console, the text box and the speed controls"></td>
-    <td width="50%"><img src="store-assets/04-screenshot-progress-overlay.png" alt="On-screen progress overlay while the text is being typed, with a Cancel button"></td>
+    <td width="50%"><img src="store-assets/screenshot-1-paste-en.png" alt="Extension popup showing a detected noVNC console, the text box and the speed controls"></td>
+    <td width="50%"><img src="store-assets/screenshot-2-confirm-en.png" alt="Confirmation on the console before pasting three lines, with a preview of the commands"></td>
   </tr>
 </table>
 
 ## ✨ Features
 
-- ⌨️ **Three ways to paste:** <kbd>Ctrl</kbd>+<kbd>V</kbd> inside the console, the extension popup, or right-click on selected text → *Paste to KVM Console*.
-- 🔎 **Finds the console by itself**, including when it's loaded inside an iframe.
+- ⌨️ **Three ways to paste:** <kbd>Ctrl</kbd>+<kbd>V</kbd> inside the console, the extension popup (<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>), or right-click the console → *Paste to KVM console*.
+- 🛑 **Asks before running commands:** text with line breaks shows a preview first, since each line break presses Enter on the server.
+- 🔤 **Warns about non-ASCII characters** (ñ, á, €) that depend on the server keyboard layout.
+- 🔎 **Finds the console by itself**, including inside an iframe on another domain (IONOS).
+- 🌍 **English and Spanish** interface.
 - 🐢 **Adjustable typing speed:** 10–200 ms per character (50 ms by default), for slow connections that drop keys.
 - ↩️ **Configurable pause after Enter:** 200–3000 ms (500 ms by default), so multi-line scripts don't run ahead of the server.
 - 📊 **Progress overlay with Cancel** while long texts are being typed.

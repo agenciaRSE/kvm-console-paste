@@ -2,58 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <title>KVM Console Paste</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="container">
+  <!-- Texts come from _locales via data-i18n (textContent),
+       data-i18n-placeholder and data-i18n-label (aria-label). -->
+  <main class="container">
     <header>
       <h1>KVM Console Paste</h1>
-      <div id="status" class="status">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Detecting console...</span>
+      <div id="status" class="status" role="status">
+        <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+        <span id="statusText" data-i18n="statusDetecting">Looking for a console...</span>
       </div>
     </header>
 
     <!-- Site permission section (shown when site not yet enabled) -->
     <div id="siteSection" class="site-section" style="display:none;">
       <div class="site-blocked">
-        <p class="site-blocked-msg">This site is not enabled.<br>Allow the extension to run here?</p>
-        <button id="enableBtn" class="btn btn-enable">Enable on this site</button>
+        <p class="site-blocked-msg" data-i18n="siteNotEnabled">Not enabled here yet. Allow the extension to run on:</p>
+        <p class="site-hosts" id="siteHosts"></p>
+        <button type="button" id="enableBtn" class="btn btn-enable" data-i18n="enableSite">Enable on this site</button>
       </div>
     </div>
 
     <div class="main" id="mainSection">
-      <label for="textInput">Text to send:</label>
-      <textarea id="textInput" placeholder="Paste the text you want to send to the KVM console here..." rows="6"></textarea>
+      <label for="textInput" data-i18n="textToSend">Text to send:</label>
+      <textarea id="textInput" rows="6" aria-describedby="textInfo"
+        data-i18n-placeholder="textPlaceholder"></textarea>
+      <div id="textInfo" class="text-info"></div>
 
       <div class="speed-control">
-        <label for="speedSlider">Typing speed:</label>
+        <label for="speedSlider" data-i18n="typingSpeed">Typing speed:</label>
         <div class="slider-row">
-          <span class="speed-label">Fast</span>
+          <span class="speed-label" aria-hidden="true" data-i18n="fast">Fast</span>
           <input type="range" id="speedSlider" min="10" max="200" value="50" step="5">
-          <span class="speed-label">Slow</span>
+          <span class="speed-label" aria-hidden="true" data-i18n="slow">Slow</span>
         </div>
-        <span class="speed-value" id="speedValue">50ms</span>
+        <span class="speed-value" id="speedValue" aria-hidden="true">50 ms</span>
       </div>
 
       <div class="speed-control">
-        <label for="newlineSlider">Delay after Enter (for commands):</label>
+        <label for="newlineSlider" data-i18n="newlineDelay">Delay after Enter (for commands):</label>
         <div class="slider-row">
-          <span class="speed-label">500ms</span>
+          <span class="speed-label" aria-hidden="true">200 ms</span>
           <input type="range" id="newlineSlider" min="200" max="3000" value="500" step="100">
-          <span class="speed-label">3s</span>
+          <span class="speed-label" aria-hidden="true">3 s</span>
         </div>
-        <span class="speed-value" id="newlineValue">500ms</span>
+        <span class="speed-value" id="newlineValue" aria-hidden="true">500 ms</span>
       </div>
 
       <div class="actions">
-        <button id="sendBtn" class="btn btn-primary" disabled>Send to Console</button>
-        <button id="cancelBtn" class="btn btn-danger" style="display:none;">Cancel</button>
-        <button id="clearBtn" class="btn btn-secondary">Clear</button>
+        <button type="button" id="sendBtn" class="btn btn-primary" disabled data-i18n="send">Send to console</button>
+        <button type="button" id="cancelBtn" class="btn btn-danger" style="display:none;" data-i18n="cancel">Cancel</button>
+        <button type="button" id="clearBtn" class="btn btn-secondary" data-i18n="clear">Clear</button>
       </div>
 
       <div id="progressSection" class="progress-section" style="display:none;">
-        <div class="progress-bar">
+        <div class="progress-bar" id="progressBar" role="progressbar" data-i18n-label="progressLabel"
+          aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div class="progress-fill" id="progressFill"></div>
         </div>
         <span class="progress-text" id="progressText">0%</span>
@@ -61,32 +68,38 @@
     </div>
 
     <div class="settings">
-      <h2>Options</h2>
+      <h2 data-i18n="options">Options</h2>
       <label class="checkbox-label">
         <input type="checkbox" id="autoPaste" checked>
-        Auto-paste with Ctrl+V on console
+        <span data-i18n="optAutoPaste">Paste with Ctrl+V on the console</span>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="confirmMultiline" checked>
+        <span data-i18n="optConfirm">Ask before pasting text with line breaks</span>
       </label>
       <label class="checkbox-label">
         <input type="checkbox" id="showOverlay" checked>
-        Show progress overlay on page
+        <span data-i18n="optOverlay">Show progress on the page</span>
       </label>
-      <div class="sites-header" id="sitesToggle">
-        <span>Enabled sites</span>
+      <button type="button" class="sites-header" id="sitesToggle" aria-expanded="false" aria-controls="sitesList">
+        <span data-i18n="enabledSites">Enabled sites</span>
         <span id="sitesBadge" class="sites-badge">0</span>
-        <span class="sites-chevron" id="sitesChevron">▸</span>
-      </div>
+        <span class="sites-chevron" id="sitesChevron" aria-hidden="true">▸</span>
+      </button>
       <div id="sitesList" class="sites-list" style="display:none;"></div>
     </div>
 
     <footer>
-      <span class="strategy" id="strategyInfo"></span>
+      <span class="strategy" id="shortcutInfo"></span>
       <div class="footer-links">
-        <span class="author">by <a href="https://agenciarse.com" target="_blank" rel="noopener">AGENCIA RSE</a></span>
-        <a href="https://www.paypal.com/paypalme/dmeijide" target="_blank" rel="noopener" class="donate-link">Donate</a>
+        <span class="author"><span data-i18n="by">by</span> <a href="https://agenciarse.com" target="_blank" rel="noopener">AGENCIA RSE <span class="sr-only" data-i18n="newTab">(opens in a new tab)</span></a></span>
+        <a href="https://www.paypal.com/paypalme/dmeijide" target="_blank" rel="noopener" class="donate-link"><span data-i18n="donate">Donate</span> <span class="sr-only" data-i18n="newTab">(opens in a new tab)</span></a>
       </div>
     </footer>
-  </div>
+  </main>
 
+  <script src="lib/keysym-map.js"></script>
+  <script src="lib/sites.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -2,6 +2,8 @@
  * KVM Console Paste - Background Service Worker
  */
 
+importScripts('lib/sites.js');
+
 // Update badge when content script reports console detection
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'updateBadge' && sender.tab) {
@@ -18,46 +20,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return false;
 });
 
-// On install/update: recreate context menu and re-register content scripts
-// for all saved domains (dynamic registrations survive updates but not
-// a full uninstall+reinstall, so we restore them from storage).
+// On install/update: recreate the context menu and rebuild the content-script
+// registrations from storage (scripts and match lists may have changed).
 chrome.runtime.onInstalled.addListener(async () => {
+  // On update the old item still exists: re-creating it would throw "duplicate id".
+  await chrome.contextMenus.removeAll();
   chrome.contextMenus.create({
     id: 'kvmPaste',
-    title: 'Paste to KVM Console',
+    title: chrome.i18n.getMessage('menuPaste'),
     contexts: ['page', 'frame'],
   });
-  await reRegisterAllDomains();
+  await KvmSites.reRegisterAll();
 });
-
-// Also re-register on browser startup (registrations persist, but this
-// guards against edge cases where the profile was partially reset).
-chrome.runtime.onStartup.addListener(async () => {
-  await reRegisterAllDomains();
-});
-
-async function reRegisterAllDomains() {
-  const { enabledDomains = [] } = await chrome.storage.local.get('enabledDomains');
-  for (const domain of enabledDomains) {
-    const id = `kvm-paste-${domain}`;
-    const origin = `https://${domain}/*`;
-    // Skip if already registered
-    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] }).catch(() => []);
-    if (existing.length > 0) continue;
-    // Check we still have the host permission
-    const hasPerm = await chrome.permissions.contains({ origins: [origin] }).catch(() => false);
-    if (!hasPerm) continue;
-    try {
-      await chrome.scripting.registerContentScripts([{
-        id,
-        matches: [origin],
-        js: ['lib/keysym-map.js', 'content.js'],
-        runAt: 'document_idle',
-        allFrames: true,
-      }]);
-    } catch (e) { /* already registered or permission lost */ }
-  }
-}
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'kvmPaste' || !tab?.id) return;

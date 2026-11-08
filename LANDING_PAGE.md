@@ -62,7 +62,7 @@ What this extension does
 
 KVM Console Paste solves the problem the only way the problem can be solved: it simulates keystrokes. Since noVNC can't accept a pasted string directly, the extension feeds your text to the console one character at a time, pretending to be a very fast typist. The console doesn't know the difference. You get your command in there without touching the keyboard.
 
-You can trigger it three ways: press Ctrl+V while the console has focus and it just works, open the extension popup and send text from there, or right-click any selected text on the page and choose "Paste to KVM Console." Whichever fits how you work.
+You can trigger it three ways: press Ctrl+V while the console has focus and it just works, open the extension popup and send text from there, or right-click the console and choose "Paste to KVM console." Whichever fits how you work.
 
 The typing speed is adjustable — from 10ms to 200ms per character — so if your connection is slow or the console drops characters at high speed, you dial it back. There's also a configurable delay after each Enter keystroke, which matters when you're pasting a multi-line script and the server needs a breath between commands. A progress bar shows you where it is. A cancel button stops it if something goes wrong.
 
@@ -101,7 +101,7 @@ Go to your hosting panel, launch the KVM or VNC console as you normally would, a
 
 #### STEP 2
 ### H3: Paste your text
-Click inside the console so it has focus, then press Ctrl+V. Or open the extension popup and paste your text there. Or right-click selected text anywhere on the page.
+Click inside the console so it has focus, then press Ctrl+V. Or open the extension popup and paste your text there. Or right-click the console and choose "Paste to KVM console".
 
 #### STEP 3
 ### H3: Done

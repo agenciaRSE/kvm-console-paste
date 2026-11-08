@@ -78,13 +78,25 @@ textarea {
 }
 
 textarea:focus {
-  outline: none;
+  outline: 2px solid #64ffda;
+  outline-offset: 1px;
   border-color: #64ffda;
   box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.15);
 }
 
 textarea::placeholder {
-  color: #484f58;
+  color: #8b949e;
+}
+
+.text-info p {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #c9d1d9;
+}
+
+.text-info .warn {
+  color: #e3b341;
 }
 
 /* Speed control */
@@ -101,7 +113,7 @@ textarea::placeholder {
 
 .speed-label {
   font-size: 11px;
-  color: #6e7681;
+  color: #8b949e;
   white-space: nowrap;
 }
 
@@ -112,7 +124,6 @@ input[type="range"] {
   height: 4px;
   background: #30363d;
   border-radius: 2px;
-  outline: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -277,6 +288,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
   line-height: 1.6;
 }
 
+.site-hosts {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  color: #e6edf3;
+  margin: -6px 0 12px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 .btn-enable {
   width: 100%;
   background: #3fb950;
@@ -312,10 +332,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .site-tag .disable-site {
   background: none;
   border: none;
-  color: #6e7681;
+  color: #8b949e;
   cursor: pointer;
   font-size: 12px;
-  padding: 0 0 0 2px;
+  min-width: 24px;
+  min-height: 24px;
   line-height: 1;
 }
 
@@ -325,6 +346,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Enabled sites list */
 .sites-header {
+  width: 100%;
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -391,10 +417,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .site-item-remove {
   background: none;
   border: none;
-  color: #6e7681;
+  color: #8b949e;
   cursor: pointer;
   font-size: 14px;
-  padding: 0 2px;
+  min-width: 24px;
+  min-height: 24px;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -407,7 +434,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   padding: 10px;
   text-align: center;
   font-size: 11px;
-  color: #484f58;
+  color: #8b949e;
 }
 
 /* Footer */
@@ -418,7 +445,7 @@ footer {
 
 .strategy {
   font-size: 11px;
-  color: #6e7681;
+  color: #8b949e;
 }
 
 .footer-links {
@@ -430,12 +457,12 @@ footer {
 
 .author {
   font-size: 11px;
-  color: #6e7681;
+  color: #8b949e;
 }
 
 .author a {
   color: #64ffda;
-  text-decoration: none;
+  text-decoration: underline;
   font-weight: 600;
 }
 
@@ -458,4 +485,29 @@ footer {
 .donate-link:hover {
   transform: scale(1.05);
   box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 2px solid #64ffda;
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    transform: none !important;
+  }
 }

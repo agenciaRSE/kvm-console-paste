@@ -1,0 +1,137 @@
+{
+  "extName": {
+    "message": "KVM Console Paste"
+  },
+  "extDescription": {
+    "message": "Paste text into noVNC KVM web consoles (IONOS, Proxmox, Plesk) by typing it as keystrokes."
+  },
+  "menuPaste": {
+    "message": "Paste to KVM console"
+  },
+  "statusDetecting": {
+    "message": "Looking for a console..."
+  },
+  "statusDetected": {
+    "message": "KVM console detected"
+  },
+  "statusNone": {
+    "message": "No KVM console detected on this page"
+  },
+  "statusSendError": {
+    "message": "Error: could not send the text to the console"
+  },
+  "siteNotEnabled": {
+    "message": "Not enabled here yet. Allow the extension to run on:"
+  },
+  "enableSite": {
+    "message": "Enable on this site"
+  },
+  "requestingPermission": {
+    "message": "Requesting permission..."
+  },
+  "textToSend": {
+    "message": "Text to send:"
+  },
+  "textPlaceholder": {
+    "message": "Paste the text you want to type into the console..."
+  },
+  "typingSpeed": {
+    "message": "Typing speed:"
+  },
+  "fast": {
+    "message": "Fast"
+  },
+  "slow": {
+    "message": "Slow"
+  },
+  "msPerChar": {
+    "message": "$1 ms per character"
+  },
+  "msValue": {
+    "message": "$1 ms"
+  },
+  "newlineDelay": {
+    "message": "Delay after Enter (for commands):"
+  },
+  "send": {
+    "message": "Send to console"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "clear": {
+    "message": "Clear"
+  },
+  "progressLabel": {
+    "message": "Sending progress"
+  },
+  "options": {
+    "message": "Options"
+  },
+  "optAutoPaste": {
+    "message": "Paste with Ctrl+V on the console"
+  },
+  "optOverlay": {
+    "message": "Show progress on the page"
+  },
+  "optConfirm": {
+    "message": "Ask before pasting text with line breaks"
+  },
+  "enabledSites": {
+    "message": "Enabled sites"
+  },
+  "noSites": {
+    "message": "No sites enabled yet"
+  },
+  "disableOn": {
+    "message": "Disable on $1"
+  },
+  "removeSite": {
+    "message": "Remove $1"
+  },
+  "newTab": {
+    "message": "(opens in a new tab)"
+  },
+  "by": {
+    "message": "by"
+  },
+  "donate": {
+    "message": "Donate"
+  },
+  "shortcut": {
+    "message": "Shortcut: $1"
+  },
+  "lineBreakOne": {
+    "message": "1 line break: it presses Enter and runs a command."
+  },
+  "lineBreakMany": {
+    "message": "$1 line breaks: each one presses Enter and runs a command."
+  },
+  "nonAscii": {
+    "message": "May not type correctly, depending on the server keyboard layout: $1"
+  },
+  "confirmTitle": {
+    "message": "Paste into the console?"
+  },
+  "confirmPaste": {
+    "message": "Paste"
+  },
+  "overlaySending": {
+    "message": "Sending $1/$2 ($3%)"
+  },
+  "overlayPreparing": {
+    "message": "Preparing..."
+  },
+  "overlayDone": {
+    "message": "Done"
+  },
+  "overlayDoneText": {
+    "message": "Text sent"
+  },
+  "overlayClipboardError": {
+    "message": "Could not read the clipboard. Use Ctrl+V or the extension popup."
+  },
+  "statusDisabled": {
+    "message": "Not enabled on this site"
+  }
+}
